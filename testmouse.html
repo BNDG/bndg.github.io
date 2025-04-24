@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Test</title>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <style>
+        /* 固定位置的按钮样式 */
+        .scroll-page-down {
+            position: fixed;
+            top: 20px; /* 距离页面顶部的距离 */
+            left: 20px; /* 距离页面右侧的距离 */
+            z-index: 1000; /* 确保按钮在其他内容之上 */
+            padding: 10px 20px;
+            background-color: #007bff; /* 按钮背景颜色 */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 鼠标悬停时改变按钮背景颜色 */
+        .scroll-page-down:hover {
+            background-color: #0056b3;
+        }
+		iframe {
+  overflow: auto;  /* 或者 overflow: scroll; */
+}
+
+    </style>
+</head>
+<body class="hold-transition skin-blue sidebar-mini">
+<!-- 固定位置的按钮 -->
+    <button class="scroll-page-down">向下滚动一页</button>
+
+        <div class="wrapper">
+            <video width="100%" height="auto" controls>
+                <source src="{{ url_for('static', filename='abc.mp4') }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div class="content-wrapper">
+                <iframe  class="iframe_one"  width="100%" height="2200px" id="indexurl" style="background-color: #979fcf;"></iframe>
+            </div>
+            <div style="height: 400px;">
+			<p style="height: 300px;">i'm p1</p>
+            <div style="height: 400px;">
+			<p style="height: 200px;">i'm p2</p>
+            <div style="height: 400px;">
+			<p style="height: 300px;">i'm p3</p>
+            </div>
+           
+           
+        </div>
+		
+		<script>
+        // 获取按钮元素
+        const button = document.querySelector('.scroll-page-down');
+        const iframeOne = document.querySelector('.iframe_one');
+        const iframeTwo = document.querySelector('.iframe_two');
+
+        // 添加点击事件监听器
+        button.addEventListener('click', function() {
+           scrollOnePageDown();
+		   //scrollToBottom();
+        });
+		// 向页面滚动一页
+		function scrollOnePageDown() {
+				 iframeOne.contentWindow.scrollBy(0, 100);
+		}
+        var isPlayOnWeb = false;
+        var interval = setInterval(function videoTagFinder() {
+            var videoTags = document.getElementsByTagName("video");
+            var videoSrcs = [];
+            for (var index = 0; index < videoTags.length; index++) {
+                var videoTag = videoTags[index];
+                if (videoTag.getAttribute("marked") == "1") {
+                    continue;
+                }
+                // 获取视频的 src 属性
+                var videoSrc = videoTag.src;
+                if (!videoSrc) {
+                    var sources = videoTag.getElementsByTagName("source");
+                    if (sources.length > 0) {
+                        videoSrc = sources[0].src; // 使用第一个 <source> 的 src
+                        videoSrcs.push(videoSrc);
+                    }
+                }
+                videoTag.addEventListener("webkitbeginfullscreen", onEnterFullScreenEvent, true);
+                videoTag.addEventListener("webkitendfullscreen", onExitFullScreenEvent, true);
+                videoTag.addEventListener("play", onVideoPlayEvent, true);
+                videoTag.addEventListener("pause", onVideoPauseEvent, true);
+                videoTag.setAttribute("position", index)
+                videoTag.setAttribute("marked", "1");
+            }
+            console.log(videoSrcs)
+                console.log(videoSrcs.size + "adfdasf" + videoSrcs.length)
+            if (window.android != null && typeof (window.android) != "undefined") {
+                if (videoSrcs.size > 0) {
+                    window.android.detectedVideo(JSON.stringify(videoSrcs))
+                }
+            }
+
+            function onEnterFullScreenEvent() {
+            }
+
+            function onExitFullScreenEvent() {
+            }
+
+            function onVideoPlayEvent() {
+                if (!isPlayOnWeb) {
+                    checkIsNeedUsePlayerOfApp(this)
+
+                }
+            }
+
+            function onVideoPauseEvent() {
+            }
+
+            function checkIsNeedUsePlayerOfApp(videoTag) {
+                var i = setInterval(function () {
+                    notifyAppPlayerToPlay(videoTag);
+                    videoTag.pause();
+                    clearInterval(i)
+                }, 200)
+
+            }
+
+            /**
+
+            * notify app to play video
+
+            * @param videoTag
+
+            */
+            function notifyAppPlayerToPlay(videoTag) {
+                var videoSrc = videoTag.currentSrc;
+                var sourceArr = new Array();
+                var sources = videoTag.getElementsByTagName("source");
+                if (sources != null && sources.length > 0) {
+                    for (var index = 0; index < sources.length; index++) {
+                        var sourceInfo = {
+                            'url': sources[index].getAttribute("src"),
+                            'media': sources[index].getAttribute("media"),
+                            'type': sources[index].getAttribute("type")
+                        };
+                        sourceArr.push(sourceInfo);
+                    }
+                }
+
+                var videoInfo = {
+                    'videoUrl': videoSrc,
+                    'source': sourceArr,
+                    'title': document.title,
+                    'url': document.URL,
+                    'position': videoTag.getAttribute('position')
+                };
+                if (window.android != null && typeof (window.android) != "undefined") {
+                    window.android.callAndroid(JSON.stringify(videoInfo));
+                }
+            }
+        }, 5000)
+
+        function setPlayOnWeb() {
+            isPlayOnWeb = true;
+        }
+    </script>
+</body>
+</html>
