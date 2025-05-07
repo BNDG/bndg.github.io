@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麦克风测试</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body >
+    <div class="col-sm-12 clear-mrg text-box">
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <p></p>
+        <p></p>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <p></p>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+        <p></p>
+        <h2>2008年</h2>
+        <p><span style="letter-spacing: 1.28px;">接触自助建站，自学XML、HTML，同时注册域名
+                xnx3.cn（随着2010年扫黄打非，cn域名被强制释放）。</span></p>
+        <hr>
+    </div>
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">点击按钮调用麦克风</h1>
+        <button id="recordButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center w-full transition duration-300 ease-in-out transform hover:scale-105">
+            <i class="fa-solid fa-microphone mr-2"></i>
+            开始录音
+        </button>
+        <div id="status" class="text-center text-gray-600 mt-4"></div>
+    </div>
+    <script>
+        const recordButton = document.getElementById('recordButton');
+const status = document.getElementById('status');
+
+recordButton.addEventListener('click', async () => {
+    if (!navigator.mediaDevices) {
+        status.textContent = '您的浏览器不支持获取媒体设备，请更换浏览器';
+        return;
+    }
+    try {
+        status.textContent = '正在请求权限...';
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        status.textContent = '已获取麦克风权限，可以开始录音！';
+        // 这里可以添加更多处理音频流的逻辑，例如录制音频
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        console.log('录音已开始');
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                console.log('录制到音频数据');
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            status.textContent = '录音已停止';
+        };
+
+        // 示例：10 秒后停止录音
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, 10000);
+    } catch (error) {
+        status.textContent = '获取麦克风权限失败: ' + error.message;
+    }
+});
+    </script>
+</body>
+
+</html>
+    

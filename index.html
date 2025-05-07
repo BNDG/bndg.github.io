@@ -1,66 +1,294 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>麦克风测试</title>
+    <title>音频录制示例</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        danger: '#EF4444',
+                        neutral: '#F3F4F6',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .recording-pulse {
+                animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
         }
     </style>
 </head>
+<body class="bg-gray-50 font-inter min-h-screen flex flex-col">
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">音频录制示例</h1>
+        </div>
+    </header>
 
-<body class="bg-gray-100 flex justify-center items-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">点击按钮调用麦克风</h1>
-        <button id="recordButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center w-full transition duration-300 ease-in-out transform hover:scale-105">
-            <i class="fa-solid fa-microphone mr-2"></i>
-            开始录音
-        </button>
-        <div id="status" class="text-center text-gray-600 mt-4"></div>
-    </div>
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-lg">
+            <div class="md:flex">
+                <div class="md:flex-shrink-0">
+                    <img class="h-48 w-full object-cover md:h-full md:w-48" src="https://picsum.photos/seed/audio/400/300" alt="音频录制">
+                </div>
+                <div class="p-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">录制你的声音</h2>
+                    
+                    <div id="status" class="mb-4 text-sm text-gray-600">
+                        请点击下方按钮开始录音
+                    </div>
+                    
+                    <div id="audio-visualizer" class="h-16 w-full bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                        <!-- 音频可视化将在这里显示 -->
+                    </div>
+                    
+                    <div class="flex space-x-3 mb-4">
+                        <button id="start-btn" class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center">
+                            <i class="fa fa-microphone mr-2"></i> 开始录音
+                        </button>
+                        <button id="stop-btn" class="flex-1 bg-danger hover:bg-danger/90 text-white py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center opacity-50 cursor-not-allowed" disabled>
+                            <i class="fa fa-stop mr-2"></i> 停止录音
+                        </button>
+                    </div>
+                    
+                    <div id="audio-container" class="hidden">
+                        <h3 class="text-base font-medium text-gray-900 mb-2">录音预览</h3>
+                        <audio id="audio-preview" controls class="w-full mb-4"></audio>
+                        <button id="download-btn" class="w-full bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center">
+                            <i class="fa fa-download mr-2"></i> 下载录音
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p>© 2025 音频录制示例</p>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                        <i class="fa fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script>
-        const recordButton = document.getElementById('recordButton');
-const status = document.getElementById('status');
-
-recordButton.addEventListener('click', async () => {
-    if (!navigator.mediaDevices) {
-        status.textContent = '您的浏览器不支持获取媒体设备，请更换浏览器';
-        return;
-    }
-    try {
-        status.textContent = '正在请求权限...';
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        status.textContent = '已获取麦克风权限，可以开始录音！';
-        // 这里可以添加更多处理音频流的逻辑，例如录制音频
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.start();
-        console.log('录音已开始');
-
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                console.log('录制到音频数据');
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM元素
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const status = document.getElementById('status');
+            const audioPreview = document.getElementById('audio-preview');
+            const audioContainer = document.getElementById('audio-container');
+            const audioVisualizer = document.getElementById('audio-visualizer');
+            
+            // 录音相关变量
+            let mediaRecorder;
+            let audioChunks = [];
+            let audioStream;
+            let audioContext;
+            let analyser;
+            let dataArray;
+            let animationFrameId;
+            
+            // 检查浏览器兼容性
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                status.textContent = '您的浏览器不支持录音功能';
+                startBtn.disabled = true;
+                startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
             }
-        };
-
-        mediaRecorder.onstop = () => {
-            status.textContent = '录音已停止';
-        };
-
-        // 示例：10 秒后停止录音
-        setTimeout(() => {
-            mediaRecorder.stop();
-        }, 10000);
-    } catch (error) {
-        status.textContent = '获取麦克风权限失败: ' + error.message;
-    }
-});
+            
+            // 初始化音频上下文
+            function initAudioContext() {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            
+            // 开始录音
+            startBtn.addEventListener('click', async function() {
+                try {
+                    // 重置状态
+                    audioChunks = [];
+                    audioContainer.classList.add('hidden');
+                    
+                    // 获取麦克风权限
+                    status.textContent = '正在请求麦克风权限...';
+                    startBtn.disabled = true;
+                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // 初始化音频上下文和可视化
+                    initAudioContext();
+                    setupVisualizer(audioStream);
+                    
+                    // 创建 MediaRecorder
+                    mediaRecorder = new MediaRecorder(audioStream);
+                    
+                    // 监听数据可用事件
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    });
+                    
+                    // 监听录音停止事件
+                    mediaRecorder.addEventListener('stop', () => {
+                        // 停止可视化
+                        cancelAnimationFrame(animationFrameId);
+                        
+                        // 创建音频Blob
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        // 更新音频预览
+                        audioPreview.src = audioUrl;
+                        audioContainer.classList.remove('hidden');
+                        
+                        // 设置下载链接
+                        downloadBtn.onclick = () => {
+                            const a = document.createElement('a');
+                            a.href = audioUrl;
+                            a.download = `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.wav`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        };
+                        
+                        // 释放资源
+                        if (audioStream) {
+                            audioStream.getTracks().forEach(track => track.stop());
+                        }
+                        
+                        // 更新UI状态
+                        status.textContent = '录音已完成';
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        stopBtn.disabled = true;
+                        stopBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        stopBtn.classList.remove('recording-pulse');
+                    });
+                    
+                    // 开始录音
+                    mediaRecorder.start();
+                    
+                    // 更新UI状态
+                    status.textContent = '正在录音...';
+                    stopBtn.disabled = false;
+                    stopBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    stopBtn.classList.add('recording-pulse');
+                    
+                } catch (err) {
+                    console.error('录音错误:', err);
+                    status.textContent = `录音错误: ${err.message}`;
+                    startBtn.disabled = false;
+                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // 处理权限拒绝的情况
+                    if (err.name === 'NotAllowedError') {
+                        status.textContent = '您已拒绝麦克风权限，请刷新页面并允许访问';
+                    }
+                }
+            });
+            
+            // 停止录音
+            stopBtn.addEventListener('click', function() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            });
+            
+            // 设置音频可视化
+            function setupVisualizer(stream) {
+                // 创建音频节点
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                source.connect(analyser);
+                
+                // 创建可视化元素
+                const canvas = document.createElement('canvas');
+                canvas.width = audioVisualizer.clientWidth;
+                canvas.height = audioVisualizer.clientHeight;
+                audioVisualizer.innerHTML = '';
+                audioVisualizer.appendChild(canvas);
+                
+                const ctx = canvas.getContext('2d');
+                
+                // 绘制可视化
+                function draw() {
+                    animationFrameId = requestAnimationFrame(draw);
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    ctx.fillStyle = 'rgb(243, 244, 246)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let x = 0;
+                    
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = dataArray[i] / 2;
+                        
+                        ctx.fillStyle = `rgb(${Math.min(50 + barHeight * 2, 239)}, ${Math.min(50 + barHeight, 185)}, ${Math.min(50 + barHeight, 68)})`;
+                        ctx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                        
+                        x += barWidth + 1;
+                    }
+                }
+                
+                draw();
+            }
+            
+            // 窗口大小变化时重绘可视化
+            window.addEventListener('resize', () => {
+                if (analyser && audioVisualizer.querySelector('canvas')) {
+                    const canvas = audioVisualizer.querySelector('canvas');
+                    canvas.width = audioVisualizer.clientWidth;
+                    canvas.height = audioVisualizer.clientHeight;
+                }
+            });
+        });
     </script>
 </body>
-
 </html>
     
