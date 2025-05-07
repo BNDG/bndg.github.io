@@ -59,14 +59,25 @@
                     <h2 class="text-lg font-medium text-gray-900 mb-4">录制你的声音</h2>
                     
                     <div id="status" class="mb-4 text-sm text-gray-600">
-                        请点击下方按钮开始录音
+                        正在检查麦克风权限...
                     </div>
                     
-                    <div id="audio-visualizer" class="h-16 w-full bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                    <div id="authorization-container" class="hidden mb-4">
+                        <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+                            <p class="text-yellow-700 text-sm">
+                                <i class="fa fa-exclamation-triangle mr-1"></i> 需要麦克风权限才能录制音频
+                            </p>
+                        </div>
+                        <button id="request-auth-btn" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center">
+                            <i class="fa fa-microphone mr-2"></i> 授权麦克风
+                        </button>
+                    </div>
+                    
+                    <div id="audio-visualizer" class="h-16 w-full bg-gray-100 rounded-lg mb-4 overflow-hidden hidden">
                         <!-- 音频可视化将在这里显示 -->
                     </div>
                     
-                    <div class="flex space-x-3 mb-4">
+                    <div id="controls-container" class="flex space-x-3 mb-4 hidden">
                         <button id="start-btn" class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center">
                             <i class="fa fa-microphone mr-2"></i> 开始录音
                         </button>
@@ -116,6 +127,9 @@
             const audioPreview = document.getElementById('audio-preview');
             const audioContainer = document.getElementById('audio-container');
             const audioVisualizer = document.getElementById('audio-visualizer');
+            const controlsContainer = document.getElementById('controls-container');
+            const authorizationContainer = document.getElementById('authorization-container');
+            const requestAuthBtn = document.getElementById('request-auth-btn');
             
             // 录音相关变量
             let mediaRecorder;
@@ -125,12 +139,11 @@
             let analyser;
             let dataArray;
             let animationFrameId;
+            let hasAuthorization = false;
             
             // 检查浏览器兼容性
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 status.textContent = '您的浏览器不支持录音功能';
-                startBtn.disabled = true;
-                startBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 return;
             }
             
@@ -141,15 +154,116 @@
                 }
             }
             
+            // 检查授权状态
+            function checkAuthorization() {
+                // 尝试获取授权状态
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                    navigator.permissions.query({ name: 'microphone' }).then(permissionStatus => {
+                        if (permissionStatus.state === 'granted') {
+                            // 已授权
+                            setAuthorizationStatus(true);
+                        } else if (permissionStatus.state === 'prompt') {
+                            // 需要提示授权
+                            setAuthorizationStatus(false);
+                        } else if (permissionStatus.state === 'denied') {
+                            // 已拒绝
+                            setAuthorizationStatus(false);
+                            status.textContent = '您已拒绝麦克风权限，可能需要在设置中手动开启';
+                        }
+                        
+                        // 监听权限状态变化
+                        permissionStatus.onchange = function() {
+                            if (this.state === 'granted') {
+                                setAuthorizationStatus(true);
+                            } else {
+                                setAuthorizationStatus(false);
+                            }
+                        };
+                    }).catch(err => {
+                        console.error('无法查询麦克风权限:', err);
+                        // 无法查询权限，默认显示授权按钮
+                        setAuthorizationStatus(false);
+                    });
+                } else {
+                    // 无法查询权限，默认显示授权按钮
+                    setAuthorizationStatus(false);
+                }
+            }
+            
+            // 设置授权状态
+            function setAuthorizationStatus(authorized) {
+                hasAuthorization = authorized;
+                
+                if (authorized) {
+                    // 显示录音控制
+                    authorizationContainer.classList.add('hidden');
+                    controlsContainer.classList.remove('hidden');
+                    audioVisualizer.classList.remove('hidden');
+                    status.textContent = '已授权，可以开始录音';
+                    
+                    // 通知小程序已授权
+                    postMessageToMiniProgram({
+                        type: 'authorization',
+                        status: 'granted'
+                    });
+                } else {
+                    // 显示授权请求
+                    authorizationContainer.classList.remove('hidden');
+                    controlsContainer.classList.add('hidden');
+                    audioVisualizer.classList.add('hidden');
+                    status.textContent = '需要麦克风授权才能录制音频';
+                }
+            }
+            
+            // 向小程序发送消息
+            function postMessageToMiniProgram(message) {
+                try {
+                    if (window.__wxjs_environment === 'miniprogram') {
+                        // 微信小程序环境
+                        wx.miniProgram.postMessage({ data: message });
+                    } else {
+                        // 普通浏览器环境，可用于测试
+                        console.log('发送到小程序的消息:', message);
+                    }
+                } catch (err) {
+                    console.error('无法发送消息到小程序:', err);
+                }
+            }
+            
+            // 接收小程序消息
+            function handleMessageFromMiniProgram() {
+                window.addEventListener('message', function(event) {
+                    try {
+                        const message = event.data;
+                        console.log('收到来自小程序的消息:', message);
+                        
+                        if (message && message.type === 'authorization') {
+                            // 从小程序获取授权状态
+                            if (message.status === 'granted') {
+                                // 小程序说已授权，但仍需检查浏览器实际状态
+                                checkAuthorization();
+                            }
+                        }
+                    } catch (err) {
+                        console.error('处理来自小程序的消息时出错:', err);
+                    }
+                });
+            }
+            
             // 开始录音
             startBtn.addEventListener('click', async function() {
+                if (!hasAuthorization) {
+                    status.textContent = '请先授权麦克风';
+                    return;
+                }
+                
                 try {
                     // 重置状态
                     audioChunks = [];
                     audioContainer.classList.add('hidden');
                     
                     // 获取麦克风权限
-                    status.textContent = '正在请求麦克风权限...';
+                    status.textContent = '正在访问麦克风...';
                     startBtn.disabled = true;
                     startBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     
@@ -223,6 +337,7 @@
                     
                     // 处理权限拒绝的情况
                     if (err.name === 'NotAllowedError') {
+                        setAuthorizationStatus(false);
                         status.textContent = '您已拒绝麦克风权限，请刷新页面并允许访问';
                     }
                 }
@@ -232,6 +347,34 @@
             stopBtn.addEventListener('click', function() {
                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                     mediaRecorder.stop();
+                }
+            });
+            
+            // 请求授权
+            requestAuthBtn.addEventListener('click', async function() {
+                try {
+                    status.textContent = '正在请求麦克风权限...';
+                    requestAuthBtn.disabled = true;
+                    requestAuthBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // 授权成功，释放资源
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // 更新状态
+                    setAuthorizationStatus(true);
+                    status.textContent = '授权成功，可以开始录音';
+                    
+                } catch (err) {
+                    console.error('获取麦克风权限失败:', err);
+                    status.textContent = '获取麦克风权限失败';
+                    requestAuthBtn.disabled = false;
+                    requestAuthBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    if (err.name === 'NotAllowedError') {
+                        status.textContent = '您拒绝了麦克风权限，请在设置中允许访问';
+                    }
                 }
             });
             
@@ -287,6 +430,18 @@
                     canvas.height = audioVisualizer.clientHeight;
                 }
             });
+            
+            // 初始化
+            handleMessageFromMiniProgram();
+            checkAuthorization();
+            
+            // 通知小程序页面已加载
+            setTimeout(() => {
+                postMessageToMiniProgram({
+                    type: 'pageLoaded',
+                    timestamp: new Date().toISOString()
+                });
+            }, 500);
         });
     </script>
 </body>
